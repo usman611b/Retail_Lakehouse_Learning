@@ -9,3 +9,4 @@ __pycache__/
 /lakehouse/silver/data/
 /lakehouse/gold/data/
 .ipynb_checkpoints/
+/error/data/
