@@ -1,0 +1,14 @@
+services: # The containers that make up this project.
+  postgres: # Our database service; we'll use this name in later commands.
+    image: postgres:17 # Use PostgreSQL major version 17.
+    environment: # Values passed into PostgreSQL when it starts.
+      POSTGRES_USER: ${POSTGRES_USER} # Database user from .env.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # Password from .env.
+      POSTGRES_DB: ${POSTGRES_DB} # Database name from .env.
+    ports: # Connect a port on your computer to a port in the container.
+      - "127.0.0.1:5433:5432" # Your computer:5433 → PostgreSQL:5432.
+    volumes: # Keep database files when the container stops.
+      - retail_pgdata:/var/lib/postgresql/data # Named storage → PostgreSQL data folder.
+
+volumes: # Define the named storage used above.
+  retail_pgdata: # Docker manages this storage for us.
