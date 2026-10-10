@@ -80,6 +80,10 @@ Git records notebook source and these notes. Git does not store Requirements, la
 - **Spark warnings:** messages about native Hadoop libraries or a truncated plan did not stop the jobs. Check for an exception and the final verification output before classifying a warning as a failure.
 - **Zero rejected rows:** this is evidence that this particular snapshot satisfied the implemented rules. It does not mean rejection logic is unnecessary or proven under bad input.
 
+### Estimated line cost and margin for Gold
+
+The updated order_items notebook joins accepted lines to Silver product costs. It saves estimated_line_cost = quantity times cost_price and estimated_line_margin = line_total minus estimated_line_cost, both decimal(14,2). These are before order discount or tax. Missing derived values fail validation. The rerun kept 9,868 lines, rejected zero, and verified the saved schema. Gold uses estimated_line_cost for profit after allocating discounts.
+
 ## 8. What Gold will use
 
 Silver now gives typed, checked inputs for Gold. Gold must define sales metrics deliberately: the order header total, the order-line amount, payment status, cancellations and returns, and the grain of each Gold table all affect revenue. A one-to-many join from orders to order_items can multiply an order total, so aggregations must respect grain. The planned Gold outputs are daily_store_sales, product_performance, customer_sales, and weather_sales_analysis.
