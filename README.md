@@ -4,3 +4,4 @@ Expected Output :Bronze/Silver/Gold Delta tables + Gold CSV exports/prquetsfiles
 
 The supplied Requirements files and generated landing data are kept locally and are excluded from this public repository.
 Gold learning notebooks and metric definitions: [lakehouse/gold/GOLD_NOTES.md](lakehouse/gold/GOLD_NOTES.md). Run the updated Silver order-items notebook before Gold.
+For local Power BI import, run [powerbi/01_export_gold_parquet.ipynb](powerbi/01_export_gold_parquet.ipynb). It creates four checked Parquet snapshots in the ignored powerbi/exports folder.

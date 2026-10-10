@@ -10,3 +10,4 @@ __pycache__/
 /lakehouse/gold/data/
 .ipynb_checkpoints/
 /error/data/
+/powerbi/exports/
