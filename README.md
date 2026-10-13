@@ -2,29 +2,66 @@
 
 An end-to-end local data engineering project. PostgreSQL tables, reference CSV files, and weather observations flow through Bronze, Silver, and Gold Delta tables. Apache Airflow runs the notebooks in order and exports checked Gold snapshots for a five-page Power BI report.
 
-## Architecture
+## Workflow at a glance
 
-```text
-PostgreSQL + CSV + weather API/offline fallback
-                    |
-             Bronze (2 notebooks)
-                    |
-             Silver (9 notebooks)
-                    |
-              Gold (4 notebooks)
-                    |
-          Parquet export notebook
-                    |
-          Power BI Desktop report
+```mermaid
+flowchart LR
+    subgraph sources["Raw sources"]
+        direction TB
+        csv["Reference CSV files"]
+        postgres["PostgreSQL retail tables"]
+        weather["Weather sample CSV"]
+    end
+
+    subgraph bronze["Bronze ingestion"]
+        direction TB
+        bronze_csv["Reference and weather CSV notebook"]
+        bronze_postgres["PostgreSQL JDBC notebook"]
+        bronze_tables[("9 source-aligned Delta tables")]
+    end
+
+    subgraph silver["Silver transformation"]
+        direction TB
+        silver_notebooks["9 ordered notebooks: clean, type, validate"]
+        silver_tables[("9 checked Delta tables")]
+    end
+
+    subgraph gold["Gold business marts"]
+        direction TB
+        store["Daily store sales"]
+        product["Product performance"]
+        customer["Customer sales"]
+        weather_sales["Weather and sales analysis"]
+    end
+
+    csv --> bronze_csv
+    weather --> bronze_csv
+    postgres --> bronze_postgres
+    bronze_csv --> bronze_tables
+    bronze_postgres --> bronze_tables
+    bronze_tables --> silver_notebooks --> silver_tables
+    silver_tables --> store
+    silver_tables --> product
+    silver_tables --> customer
+    silver_tables --> weather_sales
+    store --> export["Validate and export 4 Parquet files"]
+    product --> export
+    customer --> export
+    weather_sales --> export
+    export --> report["Power BI Desktop: shared dimensions, DAX, 5 report pages"]
 ```
 
-The [Airflow DAG](airflow/dags/retail_lakehouse.py) creates 17 sequential tasks: a project check, two Bronze notebooks, nine Silver notebooks, four Gold notebooks, and the Power BI export. It uses `schedule=None`, so a user must trigger each run. It does not watch source files or refresh Power BI automatically. One active DAG run is allowed at a time.
+The diagram shows how data moves. The [Airflow DAG](airflow/dags/retail_lakehouse.py) runs the work **sequentially** in 17 tasks:
+`check_project` -> Bronze CSV -> Bronze PostgreSQL -> Silver notebooks 01-09 -> Gold notebooks 01-04 -> Power BI Parquet export.
+Each notebook must succeed before the next starts. The export reopens each Parquet file and checks its schema, row count, and revenue against the Gold Delta source.
+
+The DAG uses `schedule=None`: trigger it manually after updating source data. It does not watch for new files. After the export succeeds, use **Refresh** in Power BI Desktop to load the new data; the DAG does not refresh Power BI itself. One active DAG run is allowed at a time.
 
 ## What the layers do
 
 | Layer | Work | Output |
 | --- | --- | --- |
-| Bronze | Ingest source data through PostgreSQL JDBC, CSV, and weather JSON Lines; check source counts and schemas. | Source-aligned Delta tables |
+| Bronze | Ingest PostgreSQL tables through JDBC and load reference and weather CSV files; check source counts and schemas. | Source-aligned Delta tables |
 | Silver | Type, clean, validate, and relate customers, suppliers, products, stores, promotions, weather, orders, order items, and payments. | Nine checked Delta tables |
 | Gold | Build daily store sales, product performance, customer sales, and weather-sales analysis at explicit grains. | Four reconciled Delta marts |
 | Export | Read approved Gold tables, validate row counts and totals, and write Parquet snapshots. | Power BI import files |
